@@ -1,0 +1,119 @@
+/* Fireworks CSS */
+
+.fireworks-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* CSS Fireworks Backup */
+.css-fireworks {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.firework {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: firework-burst 1.5s ease-out forwards;
+}
+
+.spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 30px;
+  background: linear-gradient(to bottom, var(--spark-color, #FFD700), transparent);
+  transform-origin: center bottom;
+  animation: spark-fly 1s ease-out forwards;
+  border-radius: 2px;
+}
+
+@keyframes firework-burst {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes spark-fly {
+  0% {
+    height: 0;
+    opacity: 1;
+  }
+  30% {
+    height: 40px;
+    opacity: 1;
+  }
+  100% {
+    height: 40px;
+    opacity: 0;
+    transform: rotate(var(--rotate, 0deg)) translateY(-60px);
+  }
+}
+
+/* Explosion rings */
+.firework::before,
+.firework::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--spark-color, #FFD700);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ring-expand 1s ease-out forwards;
+}
+
+.firework::after {
+  animation-delay: 0.1s;
+}
+
+@keyframes ring-expand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 100px;
+    height: 100px;
+    opacity: 0;
+  }
+}
+
+/* Glow effects */
+.firework .spark::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--spark-color, #FFD700);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--spark-color, #FFD700),
+              0 0 20px var(--spark-color, #FFD700);
+}

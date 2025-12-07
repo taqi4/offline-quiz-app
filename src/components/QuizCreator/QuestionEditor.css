@@ -1,0 +1,245 @@
+/* Question Editor Styles */
+
+.question-editor {
+  min-height: 100vh;
+  position: relative;
+  background: var(--theme-bg-gradient, linear-gradient(135deg, #0f0f23, #1a1a2e));
+}
+
+.q-editor-container {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Header */
+.q-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.q-editor-header h1 {
+  flex: 1;
+}
+
+/* Section */
+.q-editor-section {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.q-editor-section h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.section-desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  margin-top: -0.5rem;
+}
+
+/* Textarea */
+.q-editor-section textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Options List */
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.option-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.option-row.correct {
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  margin: -1px; /* compensate for border */
+}
+
+/* Option Selector Button */
+.option-selector {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.option-selector:hover {
+  border-color: var(--theme-accent, var(--primary-gold));
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.option-selector.selected {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.option-label {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-light);
+}
+
+.option-selector.selected .option-label {
+  color: white;
+}
+
+.correct-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  background: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: white;
+  border: 2px solid var(--bg-dark);
+}
+
+/* Option Input */
+.option-input {
+  flex: 1;
+}
+
+.option-row.correct .option-input {
+  border-color: var(--success);
+}
+
+/* Hint */
+.options-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+/* Preview Section */
+.preview-section {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.question-preview {
+  background: var(--theme-bg-primary, var(--bg-navy));
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+
+.preview-question {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+  color: var(--theme-text, var(--text-light));
+}
+
+.preview-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.preview-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.preview-option.correct {
+  border-color: var(--success);
+  background: rgba(76, 175, 80, 0.15);
+}
+
+.preview-label {
+  width: 28px;
+  height: 28px;
+  background: var(--theme-accent, var(--primary-gold));
+  color: var(--theme-button-text, var(--text-dark));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.preview-text {
+  flex: 1;
+  font-size: 0.95rem;
+}
+
+.preview-correct {
+  color: var(--success);
+  font-weight: 700;
+}
+
+/* Actions */
+.q-editor-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .q-editor-container {
+    padding: 1rem;
+  }
+  
+  .option-row {
+    flex-wrap: wrap;
+  }
+  
+  .option-input {
+    width: 100%;
+    flex: none;
+  }
+  
+  .q-editor-actions {
+    flex-direction: column;
+  }
+  
+  .q-editor-actions button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,513 @@
+/* Home Screen Styles - Premium Enhanced */
+
+.home-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-content {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ==========================================
+   HEADER & LOGO - Premium Design
+   ========================================== */
+
+.home-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  font-size: 5rem;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6));
+  position: relative;
+}
+
+.logo-icon::after {
+  content: '✨';
+  position: absolute;
+  top: -10px;
+  right: -20px;
+  font-size: 1.5rem;
+  animation: twinkle 1.5s ease-in-out infinite;
+}
+
+.logo-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(
+    135deg, 
+    #FFE066 0%, 
+    #FFD700 25%, 
+    #FFA500 50%, 
+    #FFD700 75%, 
+    #FFE066 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+  text-shadow: none;
+  letter-spacing: 3px;
+  position: relative;
+}
+
+.logo-subtitle {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 12px;
+  margin-top: 0.25rem;
+}
+
+.tagline {
+  font-size: 1.35rem;
+  color: var(--text-muted);
+  margin-top: 1.5rem;
+  font-weight: 500;
+  position: relative;
+}
+
+.tagline::before,
+.tagline::after {
+  content: '✦';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-gold);
+  font-size: 0.8rem;
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.tagline::before {
+  left: -30px;
+}
+
+.tagline::after {
+  right: -30px;
+  animation-delay: 1s;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ==========================================
+   NAVIGATION CARDS - Premium Design
+   ========================================== */
+
+.home-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  width: 100%;
+  max-width: 1000px;
+}
+
+/* Navigation Card Base */
+.nav-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Top shine effect */
+.nav-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    transparent 100%
+  );
+}
+
+/* Hover gradient overlay */
+.nav-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 215, 0, 0.1) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.nav-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  border-color: rgba(255, 215, 0, 0.4);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.4),
+    0 0 40px rgba(255, 215, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.nav-card:hover::after {
+  opacity: 1;
+}
+
+.nav-card:active {
+  transform: translateY(-6px) scale(0.98);
+}
+
+/* Card Icon */
+.card-icon {
+  font-size: 4rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  position: relative;
+  z-index: 1;
+}
+
+.nav-card:hover .card-icon {
+  transform: scale(1.15) rotate(-8deg);
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+
+/* Card Title */
+.card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--text-light);
+  position: relative;
+  z-index: 1;
+}
+
+/* Card Description */
+.card-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Card Arrow */
+.card-arrow {
+  font-size: 1.75rem;
+  color: var(--primary-gold);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateX(-10px);
+  position: relative;
+  z-index: 1;
+}
+
+.nav-card:hover .card-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ==========================================
+   CREATE CARD - Special Styling
+   ========================================== */
+
+.create-card {
+  border-color: rgba(255, 215, 0, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 215, 0, 0.08) 0%,
+    rgba(255, 215, 0, 0.02) 100%
+  );
+}
+
+.create-card:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.4),
+    0 0 50px rgba(255, 215, 0, 0.2);
+}
+
+.create-card .card-icon {
+  animation: pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.5));
+}
+
+.create-card::after {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 215, 0, 0.15) 0%,
+    transparent 60%
+  );
+}
+
+/* ==========================================
+   PLAY CARD - Special Styling
+   ========================================== */
+
+.play-card {
+  border-color: rgba(0, 168, 107, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 168, 107, 0.08) 0%,
+    rgba(0, 168, 107, 0.02) 100%
+  );
+}
+
+.play-card:hover {
+  border-color: rgba(0, 168, 107, 0.5);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.4),
+    0 0 50px rgba(0, 168, 107, 0.2);
+}
+
+.play-card .card-icon {
+  animation: bounce 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 15px rgba(0, 168, 107, 0.5));
+}
+
+.play-card .card-arrow {
+  color: var(--primary-green);
+}
+
+.play-card::after {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(0, 168, 107, 0.15) 0%,
+    transparent 60%
+  );
+}
+
+/* ==========================================
+   MANAGE CARD - Special Styling
+   ========================================== */
+
+.manage-card {
+  border-color: rgba(107, 76, 154, 0.15);
+  background: linear-gradient(
+    135deg,
+    rgba(107, 76, 154, 0.08) 0%,
+    rgba(107, 76, 154, 0.02) 100%
+  );
+}
+
+.manage-card:hover {
+  border-color: rgba(107, 76, 154, 0.5);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.4),
+    0 0 50px rgba(107, 76, 154, 0.2);
+}
+
+.manage-card .card-icon {
+  filter: drop-shadow(0 0 15px rgba(107, 76, 154, 0.5));
+}
+
+.manage-card .card-arrow {
+  color: #8B5CF6;
+}
+
+.manage-card::after {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(107, 76, 154, 0.15) 0%,
+    transparent 60%
+  );
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+
+.home-footer {
+  margin-top: 4rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
+.home-footer p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ==========================================
+   DECORATIVE ELEMENTS
+   ========================================== */
+
+.home-content::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.home-content::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  right: 5%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(0, 168, 107, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 900px) {
+  .home-nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 600px;
+  }
+  
+  .manage-card {
+    grid-column: span 2;
+    max-width: 300px;
+    justify-self: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-content {
+    padding: 1.5rem;
+  }
+  
+  .logo-icon {
+    font-size: 4rem;
+  }
+  
+  .logo-text {
+    font-size: 2.5rem;
+    letter-spacing: 2px;
+  }
+  
+  .logo-subtitle {
+    font-size: 1.25rem;
+    letter-spacing: 6px;
+  }
+  
+  .tagline {
+    font-size: 1.1rem;
+  }
+  
+  .tagline::before,
+  .tagline::after {
+    display: none;
+  }
+  
+  .home-nav-grid {
+    gap: 1.25rem;
+  }
+  
+  .nav-card {
+    padding: 2rem 1.5rem;
+    border-radius: 20px;
+  }
+  
+  .card-icon {
+    font-size: 3rem;
+  }
+  
+  .card-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-nav-grid {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  
+  .manage-card {
+    grid-column: span 1;
+    max-width: none;
+  }
+  
+  .logo-text {
+    font-size: 2rem;
+  }
+  
+  .logo-subtitle {
+    font-size: 1rem;
+    letter-spacing: 4px;
+  }
+  
+  .card-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* ==========================================
+   ANIMATIONS ON LOAD
+   ========================================== */
+
+.home-header {
+  opacity: 0;
+  animation: fadeInDown 0.8s ease forwards;
+}
+
+.nav-card {
+  opacity: 0;
+}
+
+.nav-card.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.home-footer {
+  opacity: 0;
+  animation: fadeIn 0.8s ease 0.8s forwards;
+}
