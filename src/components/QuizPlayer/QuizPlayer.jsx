@@ -32,6 +32,7 @@ export function QuizPlayer({ onBack }) {
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -143,6 +144,13 @@ export function QuizPlayer({ onBack }) {
     playClick();
     setShowCelebration(false);
     startPlaying();
+  };
+
+  // Handle exit confirmation
+  const confirmExit = () => {
+    playClick();
+    setShowExitConfirm(false);
+    goToSelection();
   };
 
   // Go back to selection
@@ -311,6 +319,19 @@ export function QuizPlayer({ onBack }) {
         <ThemeBackground themeId={themeId} />
         
         <div className="focus-container">
+          {/* Top Actions */}
+          <div className="top-actions animate-fade-in">
+            <button 
+              className="btn-exit-quiz" 
+              onClick={() => {
+                playClick();
+                setShowExitConfirm(true);
+              }}
+            >
+              <span className="exit-icon">🚪</span> Exit Quiz
+            </button>
+          </div>
+
           {/* Progress Bar */}
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -367,6 +388,24 @@ export function QuizPlayer({ onBack }) {
           {showFeedback && (
             <div className={`feedback ${lastAnswerCorrect ? 'correct' : 'wrong'} animate-scale-in`}>
               {lastAnswerCorrect ? '🎉 Correct!' : '😢 Oops! Wrong answer'}
+            </div>
+          )}
+
+          {/* Exit Confirmation Modal */}
+          {showExitConfirm && (
+            <div className="exit-confirm-overlay animate-fade-in">
+              <div className="exit-confirm-modal animate-scale-in">
+                <h3>Exit Quiz?</h3>
+                <p>Are you sure you want to leave? Your progress will be lost.</p>
+                <div className="exit-confirm-actions">
+                  <button className="btn btn-secondary" onClick={() => { playClick(); setShowExitConfirm(false); }}>
+                    Cancel
+                  </button>
+                  <button className="btn btn-danger" onClick={confirmExit}>
+                    Yes, Exit
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
