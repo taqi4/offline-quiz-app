@@ -1,4 +1,4 @@
-# 🌙 Jashn-e-Noor Quiz App - User Guide
+# 🌙 Jashn-e-Ghadeer Quiz App - User Guide
 
 
 ## 🛠️ For Admins : Creating Quizzes
@@ -34,7 +34,7 @@ You can easily backup or edit your quizzes using Excel.
 
 ### **Importing**
 - Click **"Import form Excel"**.
-- Select a valid Jashn-e-Noor Excel file.
+- Select a valid Jashn-e-Ghadeer Excel file.
 - The app will validate the file and add the quiz to your list.
 
 ### **Excel Structure Guide**

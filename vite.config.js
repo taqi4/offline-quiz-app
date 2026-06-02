@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Jashn-e-Noor Quiz',
+        name: 'Jashn-e-Ghadeer Quiz',
         short_name: 'Quiz',
         description: 'Offline capable Quiz App',
         theme_color: '#1a1b4b',

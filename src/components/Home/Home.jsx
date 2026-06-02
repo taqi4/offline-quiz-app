@@ -24,7 +24,7 @@ export function Home({ onNavigate }) {
         <header className="home-header animate-fade-in-down">
           <div className="logo-container">
             <span className="logo-icon">🌙</span>
-            <h1 className="logo-text">Jashn-e-Noor</h1>
+            <h1 className="logo-text">Jashn-e-Ghadeer</h1>
             <span className="logo-subtitle">Quiz</span>
           </div>
           <p className="tagline">Test Your Knowledge with Joy!</p>
