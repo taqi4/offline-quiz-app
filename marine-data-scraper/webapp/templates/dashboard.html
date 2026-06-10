@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marine Leads Dashboard</title>
+<style>
+  :root{
+    --navy:#003366; --navy2:#0a4a82; --accent:#00b4d8; --bg:#f4f7fa;
+    --a:#2ecc71; --b:#3498db; --c:#f39c12; --d:#95a5a6; --f:#e74c3c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  body{background:var(--bg);color:#1a2a3a}
+  header{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:18px 28px;display:flex;align-items:center;gap:14px}
+  header h1{font-size:20px;font-weight:700}
+  header .tag{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:20px;font-size:12px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;padding:20px 28px}
+  .stat{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .stat .n{font-size:26px;font-weight:800;color:var(--navy)}
+  .stat .l{font-size:12px;color:#6b7c8c;text-transform:uppercase;letter-spacing:.4px;margin-top:4px}
+  .stat.hot .n{color:var(--f)} .stat.warm .n{color:var(--c)}
+  .wrap{display:grid;grid-template-columns:280px 1fr;gap:20px;padding:0 28px 28px}
+  .filters{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06);align-self:start;position:sticky;top:18px}
+  .filters h3{font-size:13px;text-transform:uppercase;color:#6b7c8c;margin-bottom:12px;letter-spacing:.5px}
+  .filters label{display:block;font-size:12px;font-weight:600;margin:12px 0 4px;color:#33475b}
+  .filters input,.filters select{width:100%;padding:8px 10px;border:1px solid #d6e0ea;border-radius:8px;font-size:13px}
+  .chk{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;font-weight:500}
+  .chk input{width:auto}
+  .btn{background:var(--navy);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer;width:100%;margin-top:14px;font-size:14px}
+  .btn:hover{background:var(--navy2)}
+  .btn.alt{background:var(--accent)}
+  .exports{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .exports a{flex:1;text-align:center;font-size:11px;background:#eef3f8;color:var(--navy);padding:8px 4px;border-radius:7px;text-decoration:none;font-weight:600}
+  .exports a:hover{background:#dce8f2}
+  .results{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+  .results .bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eef2f6}
+  .results .bar .cnt{font-weight:700;color:var(--navy)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:10px 14px;background:#f7fafc;color:#6b7c8c;font-size:11px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0}
+  td{padding:11px 14px;border-bottom:1px solid #f0f4f8}
+  tr:hover td{background:#f9fcff;cursor:pointer}
+  .grade{display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:6px;color:#fff;font-weight:800;font-size:12px}
+  .gA{background:var(--a)} .gB{background:var(--b)} .gC{background:var(--c)} .gD{background:var(--d)} .gF{background:var(--f)}
+  .pill{display:inline-block;background:#eef3f8;color:#33475b;padding:2px 8px;border-radius:12px;font-size:11px;margin:1px}
+  .muted{color:#9aa9b8}
+  .modal{position:fixed;inset:0;background:rgba(0,30,60,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal.on{display:flex}
+  .card{background:#fff;border-radius:14px;max-width:680px;width:100%;max-height:86vh;overflow:auto;padding:26px}
+  .card h2{color:var(--navy);margin-bottom:6px}
+  .card .row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .card .sec{margin-top:18px;border-top:1px solid #eef2f6;padding-top:14px}
+  .card .sec h4{font-size:12px;text-transform:uppercase;color:#6b7c8c;margin-bottom:8px}
+  .dm{color:var(--a);font-weight:700}
+  .x{float:right;cursor:pointer;font-size:22px;color:#9aa9b8}
+  a{color:var(--b)}
+  .loading{padding:40px;text-align:center;color:#9aa9b8}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚓ Marine Leads Dashboard</h1>
+  <span class="tag">Ship Spares Sales Intelligence</span>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ "{:,}".format(stats.total_companies) }}</div><div class="l">Companies</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(stats.total_emails) }}</div><div class="l">Emails</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(stats.total_contacts) }}</div><div class="l">Contacts</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(stats.decision_makers) }}</div><div class="l">Decision Makers</div></div>
+  <div class="stat hot"><div class="n">{{ "{:,}".format(stats.hot_leads) }}</div><div class="l">Hot Leads (A)</div></div>
+  <div class="stat warm"><div class="n">{{ "{:,}".format(stats.warm_leads) }}</div><div class="l">Warm Leads (B)</div></div>
+  <div class="stat"><div class="n">{{ stats.avg_lead_score }}</div><div class="l">Avg Score</div></div>
+</div>
+
+<div class="wrap">
+  <aside class="filters">
+    <h3>Filters</h3>
+    <label>Search</label>
+    <input id="q" placeholder="name, keyword…">
+    <label>Company Type</label>
+    <select id="type"><option value="">Any</option>
+      {% for t in company_types %}<option>{{ t }}</option>{% endfor %}
+    </select>
+    <label>Country</label>
+    <select id="country"><option value="">Any</option>
+      {% for c in countries %}<option>{{ c }}</option>{% endfor %}
+    </select>
+    <label>Vessel Type</label>
+    <select id="vessel"><option value="">Any</option>
+      {% for v in vessel_types %}<option>{{ v }}</option>{% endfor %}
+    </select>
+    <label>Min Lead Score: <span id="scoreVal">0</span></label>
+    <input id="min_score" type="range" min="0" max="100" value="0" step="5">
+    <label>Min Fleet Size</label>
+    <input id="min_fleet" type="number" min="0" placeholder="0">
+    <div class="chk"><input type="checkbox" id="has_email"><label style="margin:0">Has email</label></div>
+    <div class="chk"><input type="checkbox" id="has_phone"><label style="margin:0">Has phone</label></div>
+    <div class="chk"><input type="checkbox" id="has_dm"><label style="margin:0">Has decision-maker</label></div>
+    <label>Sort by</label>
+    <select id="sort">
+      <option value="score">Lead Score</option>
+      <option value="fleet">Fleet Size</option>
+      <option value="recent">Most Recent</option>
+      <option value="name">Name</option>
+    </select>
+    <button class="btn" onclick="load()">Apply Filters</button>
+    <div class="exports">
+      <a href="#" onclick="exp('excel');return false">Excel</a>
+      <a href="#" onclick="exp('contacts');return false">Contacts</a>
+      <a href="#" onclick="exp('crm');return false">CRM</a>
+    </div>
+  </aside>
+
+  <main class="results">
+    <div class="bar">
+      <span class="cnt" id="count">Loading…</span>
+      <span class="muted" id="hint">Click a row for full detail</span>
+    </div>
+    <div id="tableWrap"><div class="loading">Loading…</div></div>
+  </main>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target.id=='modal')close_()">
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+$("min_score").oninput = e => $("scoreVal").textContent = e.target.value;
+
+function params(){
+  const p = new URLSearchParams();
+  const map = {q:"q",type:"type",country:"country",vessel:"vessel",sort:"sort",min_score:"min_score",min_fleet:"min_fleet"};
+  for(const k in map){ const v=$(k).value; if(v) p.set(map[k],v); }
+  if($("has_email").checked) p.set("has_email","1");
+  if($("has_phone").checked) p.set("has_phone","1");
+  if($("has_dm").checked) p.set("has_dm","1");
+  return p;
+}
+
+async function load(){
+  $("tableWrap").innerHTML = '<div class="loading">Loading…</div>';
+  const p = params(); p.set("limit","200");
+  const r = await fetch("/api/companies?"+p.toString());
+  const d = await r.json();
+  $("count").textContent = d.count + " companies";
+  if(!d.count){ $("tableWrap").innerHTML='<div class="loading">No matches. Try widening filters.</div>'; return; }
+  let h = '<table><thead><tr><th>Score</th><th>Company</th><th>Type</th><th>Country</th><th>Fleet</th><th>Vessels</th><th>📧</th><th>👤</th></tr></thead><tbody>';
+  for(const c of d.results){
+    const g = c.grade;
+    h += `<tr onclick="detail(${c.id})">
+      <td><span class="grade g${g}">${g}</span> <b>${c.lead_score||0}</b></td>
+      <td><b>${esc(c.name)}</b><br><span class="muted">${esc(c.source_name||'')}</span></td>
+      <td>${esc(c.company_type||'')}</td>
+      <td>${esc(c.country||'')}</td>
+      <td>${c.fleet_size||'—'}</td>
+      <td>${(c.vessel_types||[]).slice(0,2).map(v=>'<span class="pill">'+esc(v)+'</span>').join('')}</td>
+      <td>${c.email_count||0}</td>
+      <td>${c.contact_count||0}</td>
+    </tr>`;
+  }
+  h += '</tbody></table>';
+  $("tableWrap").innerHTML = h;
+}
+
+async function detail(id){
+  const r = await fetch("/api/companies/"+id);
+  const c = await r.json();
+  let h = `<span class="x" onclick="close_()">×</span>
+    <h2>${esc(c.name)}</h2>
+    <div class="muted">${esc(c.company_type||'')} · ${esc(c.country||'')} ${c.city?'· '+esc(c.city):''}</div>
+    <div class="row">
+      <span class="grade g${c.grade}">${c.grade}</span>
+      <span class="pill">Score: <b>${c.lead_score||0}</b></span>
+      ${c.fleet_size?'<span class="pill">Fleet: '+c.fleet_size+'</span>':''}
+      ${(c.vessel_types||[]).map(v=>'<span class="pill">'+esc(v)+'</span>').join('')}
+    </div>`;
+  if(c.website) h += `<div class="row"><a href="${esc(c.website)}" target="_blank">${esc(c.website)}</a></div>`;
+  if(c.phone) h += `<div class="row">📞 ${esc(c.phone)}</div>`;
+  if(c.description) h += `<div class="sec"><p>${esc(c.description)}</p></div>`;
+
+  if((c.contacts||[]).length){
+    h += '<div class="sec"><h4>Contacts</h4>';
+    for(const p of c.contacts){
+      h += `<div class="row">${p.is_decision_maker?'<span class="dm">★</span> ':''}
+        <b>${esc(p.name||'')}</b> ${p.title?'<span class="muted">— '+esc(p.title)+'</span>':''}
+        ${p.email?'<br><a href="mailto:'+esc(p.email)+'">'+esc(p.email)+'</a>':''}
+        ${p.email_status?'<span class="pill">'+esc(p.email_status)+'</span>':''}</div>`;
+    }
+    h += '</div>';
+  }
+  if((c.emails||[]).length){
+    h += '<div class="sec"><h4>Emails</h4>';
+    for(const e of c.emails){
+      h += `<div class="row"><a href="mailto:${esc(e.address)}">${esc(e.address)}</a>
+        <span class="pill">${esc(e.type||'general')}</span>
+        ${e.is_role?'<span class="pill">role</span>':''}
+        ${e.is_free?'<span class="pill">free</span>':''}
+        ${e.mx_valid?'<span class="pill" style="color:#2ecc71">MX ✓</span>':''}</div>`;
+    }
+    h += '</div>';
+  }
+  $("card").innerHTML = h;
+  $("modal").classList.add("on");
+}
+
+function exp(fmt){ const p=params(); p.set("format",fmt); window.location="/api/export?"+p.toString(); }
+function close_(){ $("modal").classList.remove("on"); }
+function esc(s){ return (s||'').toString().replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+load();
+</script>
+</body>
+</html>

@@ -20,7 +20,10 @@ import colorlog
 
 import config
 from database.db import init_db, get_session
-from scheduler import SCRAPER_REGISTRY, run_scraper, run_all_scrapers, start_continuous, run_dedup
+from scheduler import (
+    SCRAPER_REGISTRY, run_scraper, run_all_scrapers, start_continuous,
+    run_dedup, run_enrichment, run_intelligence, run_postprocess,
+)
 
 
 def _setup_logging(verbose: bool = False):
@@ -127,6 +130,53 @@ def cmd_dedup():
     init_db()
     run_dedup()
     click.echo("Deduplication complete.")
+
+
+@cli.command("enrich")
+@click.option("--limit", "-l", default=200, help="Max companies to enrich")
+@click.option("--mx-check", is_flag=True, help="Validate email domains via MX lookup")
+def cmd_enrich(limit, mx_check):
+    """Visit company websites to harvest emails, phones, socials, and people."""
+    init_db()
+    run_enrichment(limit=limit, do_mx_check=mx_check)
+    click.echo("Enrichment complete.")
+
+
+@cli.command("intelligence")
+def cmd_intelligence():
+    """Classify contacts, infer email patterns, generate emails, rescore leads."""
+    init_db()
+    run_intelligence()
+    click.echo("Intelligence pass complete.")
+
+
+@cli.command("rescore")
+def cmd_rescore():
+    """Recompute lead scores for all companies."""
+    init_db()
+    from processors.lead_scorer import rescore_all
+    with get_session() as session:
+        n = rescore_all(session)
+    click.echo(f"Rescored {n} companies.")
+
+
+@cli.command("postprocess")
+def cmd_postprocess():
+    """Run the full post-scrape pipeline: dedup, enrich, intelligence."""
+    init_db()
+    run_postprocess()
+    click.echo("Post-processing complete.")
+
+
+@cli.command("serve")
+@click.option("--host", default="0.0.0.0")
+@click.option("--port", "-p", default=5000, help="Port for the web dashboard")
+@click.option("--debug", is_flag=True)
+def cmd_serve(host, port, debug):
+    """Launch the web dashboard + REST API."""
+    init_db()
+    from webapp.app import main as serve_main
+    serve_main(host=host, port=port, debug=debug)
 
 
 @cli.command("list-scrapers")

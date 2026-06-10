@@ -44,6 +44,7 @@ SCRAPER_INTERVALS = {
     "shipserv":              24,
     "tradewindsnews":        12,
     "maritime_events":       168,   # weekly
+    "web_discovery":         72,    # broad open-web sweep every 3 days
 }
 
 # Company type keywords for categorisation

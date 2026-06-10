@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import create_engine, or_, func, text
+from sqlalchemy import create_engine, or_, func, text, event
 from sqlalchemy.orm import sessionmaker, Session
 
 from database.models import (
@@ -13,9 +13,23 @@ import config
 
 engine = create_engine(
     config.DB_URL,
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False, "timeout": 30},
     echo=False,
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_sqlite_pragmas(dbapi_conn, _record):
+    """Enable WAL + sane concurrency settings so the dashboard and the
+    scheduler can safely share one SQLite file without 'database is locked'."""
+    cur = dbapi_conn.cursor()
+    cur.execute("PRAGMA journal_mode=WAL")
+    cur.execute("PRAGMA busy_timeout=30000")     # wait up to 30s for locks
+    cur.execute("PRAGMA synchronous=NORMAL")
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.close()
+
+
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
@@ -115,6 +129,18 @@ def upsert_company(session: Session, data: dict) -> tuple[Company, bool]:
     return company, True
 
 
+FREE_EMAIL_DOMAINS = {
+    "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "aol.com",
+    "protonmail.com", "icloud.com", "gmx.com", "mail.com", "yandex.com",
+    "live.com", "msn.com", "qq.com", "163.com", "126.com",
+}
+ROLE_EMAIL_LOCALS = {
+    "info", "sales", "contact", "admin", "office", "enquiries", "enquiry",
+    "support", "hello", "mail", "marketing", "purchasing", "procurement",
+    "technical", "service", "accounts", "general", "crewing", "operations",
+}
+
+
 def upsert_email(session: Session, company_id: int, address: str,
                  email_type: str = "general", source_url: str = "",
                  confidence: float = 1.0) -> bool:
@@ -125,9 +151,15 @@ def upsert_email(session: Session, company_id: int, address: str,
     ).first()
     if exists:
         return False
+
+    domain = address.split("@", 1)[1] if "@" in address else ""
+    local  = address.split("@", 1)[0] if "@" in address else address
     session.add(Email(
         company_id=company_id, address=address, email_type=email_type,
         source_url=source_url, confidence=confidence,
+        domain=domain,
+        is_free=domain in FREE_EMAIL_DOMAINS,
+        is_role=local in ROLE_EMAIL_LOCALS,
     ))
     return True
 
@@ -137,8 +169,14 @@ def search_companies(
     query: str = "",
     company_type: str = "",
     country: str = "",
+    region: str = "",
     vessel_type: str = "",
     has_email: bool = False,
+    has_phone: bool = False,
+    has_decision_maker: bool = False,
+    min_score: float = 0.0,
+    min_fleet: int = 0,
+    sort: str = "score",          # score | recent | name | fleet
     limit: int = 100,
     offset: int = 0,
 ) -> List[Company]:
@@ -147,7 +185,7 @@ def search_companies(
     if query:
         fts_ids = [
             row[0] for row in session.execute(
-                text("SELECT rowid FROM companies_fts WHERE companies_fts MATCH :q LIMIT 500"),
+                text("SELECT rowid FROM companies_fts WHERE companies_fts MATCH :q LIMIT 1000"),
                 {"q": query},
             )
         ]
@@ -162,12 +200,30 @@ def search_companies(
         q = q.filter(Company.company_type.ilike(f"%{company_type}%"))
     if country:
         q = q.filter(Company.country.ilike(f"%{country}%"))
+    if region:
+        q = q.filter(Company.region.ilike(f"%{region}%"))
     if vessel_type:
         q = q.join(Company.vessel_types).filter(VesselType.name.ilike(f"%{vessel_type}%"))
     if has_email:
         q = q.filter(Company.emails.any())
+    if has_phone:
+        q = q.filter(Company.phone.isnot(None))
+    if has_decision_maker:
+        q = q.filter(Company.contacts.any(Contact.is_decision_maker == True))
+    if min_score > 0:
+        q = q.filter(Company.lead_score >= min_score)
+    if min_fleet > 0:
+        q = q.filter(Company.fleet_size >= min_fleet)
 
-    return q.order_by(Company.date_scraped.desc()).offset(offset).limit(limit).all()
+    sort_map = {
+        "score":  Company.lead_score.desc(),
+        "recent": Company.date_scraped.desc(),
+        "name":   Company.name.asc(),
+        "fleet":  Company.fleet_size.desc(),
+    }
+    q = q.order_by(sort_map.get(sort, Company.lead_score.desc()))
+
+    return q.offset(offset).limit(limit).all()
 
 
 def get_stats(session: Session) -> dict:
@@ -176,6 +232,18 @@ def get_stats(session: Session) -> dict:
         "total_contacts":   session.query(func.count(Contact.id)).scalar(),
         "total_emails":     session.query(func.count(Email.id)).scalar(),
         "total_vessels":    session.query(func.count(Vessel.id)).scalar(),
+        "decision_makers":  session.query(func.count(Contact.id))
+                              .filter(Contact.is_decision_maker == True).scalar(),
+        "companies_with_email": session.query(func.count(Company.id))
+                                 .filter(Company.emails.any()).scalar(),
+        "companies_with_phone": session.query(func.count(Company.id))
+                                 .filter(Company.phone.isnot(None)).scalar(),
+        "hot_leads":        session.query(func.count(Company.id))
+                              .filter(Company.lead_score >= 80).scalar(),
+        "warm_leads":       session.query(func.count(Company.id))
+                              .filter(Company.lead_score >= 65,
+                                      Company.lead_score < 80).scalar(),
+        "avg_lead_score":   round(session.query(func.avg(Company.lead_score)).scalar() or 0, 1),
         "companies_by_type": dict(
             session.query(Company.company_type, func.count(Company.id))
             .group_by(Company.company_type).all()
@@ -185,6 +253,11 @@ def get_stats(session: Session) -> dict:
             .group_by(Company.country)
             .order_by(func.count(Company.id).desc())
             .limit(20).all()
+        ),
+        "companies_by_source": dict(
+            session.query(Company.source_name, func.count(Company.id))
+            .group_by(Company.source_name)
+            .order_by(func.count(Company.id).desc()).all()
         ),
     }
 

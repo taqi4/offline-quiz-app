@@ -1,6 +1,16 @@
-# Marine Data Scraper
+# Marine Data Scraper — Sales Intelligence Platform
 
-Continuously scrapes public marine industry directories, news sites, and trade-event exhibitor lists to build a searchable database of companies, contacts, and emails — purpose-built for selling ship spare parts.
+A continuously-running engine that discovers marine companies across the open
+web, public directories, news sites, trade-event exhibitor lists, and industry
+associations — then **enriches**, **scores**, and **packages** them as
+ready-to-sell leads for a ship spare-parts business.
+
+It does far more than scrape: it visits each company's own website to harvest
+direct emails, phone numbers and decision-makers; infers corporate email
+patterns to fill in missing addresses; classifies every contact by seniority
+and buying department; and ranks each company 0–100 by how likely they are to
+buy spares — all searchable from a web dashboard and exportable straight into
+your CRM.
 
 ---
 
@@ -10,26 +20,53 @@ Continuously scrapes public marine industry directories, news sites, and trade-e
 |------|---------|
 | Company name & type | Shipowner, Ship Management, Shipyard, Chandler, Agent, Broker … |
 | Vessel types operated | Tanker, Bulk Carrier, Container, Offshore, RoRo … |
-| Country / city / port | Greece, Singapore, Norway … |
-| Website | Corporate URL |
-| Emails | Purchasing, Technical, General, Management |
-| Named contacts | Name, Title, Direct email |
-| Fleet size | Number of vessels |
-| Source & date | Where and when scraped |
+| Location | Country, city, port, region |
+| Website & socials | Corporate URL, LinkedIn, Twitter/X, Facebook |
+| Phones | Main line / fax harvested from the company site |
+| Emails | Purchasing, Technical, Sales, General — flagged role/free/MX-valid |
+| Named contacts | Name, title, **seniority**, **department**, **decision-maker flag**, direct email |
+| Firmographics | Fleet size, employees, year founded |
+| **Lead score** | 0–100 sales-priority score + A–F grade |
+| Source & date | Provenance and freshness of every record |
+
+---
+
+## The Intelligence Pipeline
+
+Every scrape is followed by an automatic four-stage enrichment pipeline:
+
+1. **Deduplicate** — fuzzy-match and merge the same company found on multiple sources.
+2. **Enrich** — visit each company's website (contact/about/team/imprint pages) to pull emails, phones, social links, and named team members.
+3. **Classify & infer** — tag each contact's seniority (`c_level → staff`) and department (purchasing / technical / management …), flag decision-makers, deduce the company's email pattern (e.g. `{first}.{last}`) and synthesise likely addresses for known names with no email.
+4. **Score** — rank every company 0–100 based on buyer fit (shipowners/managers/yards score highest), fleet size, reachability (deliverable departmental emails), and presence of decision-makers.
+
+---
+
+## Lead Scoring
+
+Companies are graded so sales can work the hottest leads first:
+
+| Grade | Score | Meaning |
+|-------|-------|---------|
+| **A** | 80–100 | Hot — ICP company, reachable decision-maker, strong data |
+| **B** | 65–79 | Warm — good fit, solid contact data |
+| **C** | 50–64 | Qualified — worth outreach |
+| **D** | 35–49 | Cold — thin data or weaker fit |
+| **F** | <35 | Low priority |
 
 ---
 
 ## Data Sources
 
-| Source | Type | Update interval |
-|--------|------|----------------|
-| Maritime Connector | Directory | 24 h |
-| ShipServ | Marketplace | 24 h |
-| Hellenic Shipping News | News | 12 h |
-| Maritime Events (SMM, Europort, Nor-Shipping, Posidonia, METSTRADE, Marintec…) | Trade shows | Weekly |
-| FONASBA / BIMCO / ICS / INTERTANKO / Intercargo | Associations | 48 h |
-| Marine Insight, Maritime Standard, Maritime Executive | Directories/News | 12 h |
-| Generic directory scraper | Configurable | 24 h |
+| Source | Type | What |
+|--------|------|------|
+| **Web Discovery** (DuckDuckGo dorks) | Open web | Finds *new* marine companies by sector × geography — not limited to a fixed list |
+| Maritime Connector | Directory | Company listings + contacts |
+| ShipServ | Marketplace | Suppliers across 12 spare-parts queries |
+| Hellenic Shipping News | News | Companies & emails from articles |
+| Maritime Events | Trade shows | SMM, Europort, Nor-Shipping, Posidonia, METSTRADE, Marintec, Sea Japan, Seawork exhibitor lists |
+| FONASBA / BIMCO / ICS / INTERTANKO / Intercargo | Associations | Member directories |
+| Marine Insight / Maritime Standard / Maritime Executive / Splash247 | Directories/News | Company profiles |
 
 ---
 
@@ -37,73 +74,117 @@ Continuously scrapes public marine industry directories, news sites, and trade-e
 
 ```bash
 cd marine-data-scraper
-
-# 1. Create virtual environment
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-
-# 2. Install dependencies
+python -m venv venv && source venv/bin/activate     # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# 3. (Optional) copy and edit .env
-cp .env.example .env
-
-# 4. Initialise database
-python main.py init-db
-
-# 5. Run all scrapers once (initial seed)
-python main.py run-all
-
-# 6. Start continuous scheduler (runs forever)
-python main.py schedule
+python main.py init-db          # create the database
+python main.py run-all          # scrape + enrich + score (initial seed)
+python main.py serve            # open the dashboard at http://localhost:5000
+python main.py schedule         # run continuously forever
 ```
 
 ---
 
-## Commands
+## Web Dashboard
 
-```
-python main.py run-all                          # Run every scraper once
-python main.py run maritime_connector           # Run a single scraper
-python main.py schedule                         # Continuous mode
-python main.py schedule --no-initial-run        # Skip first immediate run
+`python main.py serve` launches a full dashboard at **http://localhost:5000**:
 
-python main.py stats                            # Database stats
-python main.py search -q "tanker" -c Greece     # Search companies
-python main.py search -t shipowner --has-email  # Filter to companies with emails
+- Live stat tiles (companies, emails, decision-makers, hot/warm leads, avg score)
+- Filter by search, company type, country, vessel type, min lead score, min fleet, has-email/phone/decision-maker
+- Sort by lead score, fleet size, recency, or name
+- Click any company for a full profile (all emails, contacts, socials, score breakdown)
+- One-click **Excel / Contacts / CRM** export of the current filtered view
 
-python main.py export marine_leads.xlsx         # Export full Excel workbook
-python main.py export contacts.csv -f contacts  # Flat contacts+email CSV
-python main.py export companies.csv -f csv      # Company CSV
+---
 
-python main.py dedup                            # Merge duplicate records
-python main.py list-scrapers                    # List scrapers and intervals
+## REST API
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/stats` | Database statistics |
+| `GET /api/companies?...` | Search/filter (same params as dashboard) |
+| `GET /api/companies/<id>` | Full company profile with contacts & emails |
+| `GET /api/export?format=excel\|csv\|contacts\|crm&...` | Download filtered export |
+| `GET /api/segments` / `POST /api/segments` | Saved marketing segments |
+
+Example:
+```bash
+curl "http://localhost:5000/api/companies?type=shipowner&country=Greece&min_score=70&has_dm=1"
 ```
 
 ---
 
-## Search & Export Filters
+## CLI Commands
 
-All `search` and `export` commands accept:
+```
+python main.py run-all                    # Full pipeline: scrape + postprocess
+python main.py run web_discovery          # Run a single scraper
+python main.py schedule                   # Continuous mode (scrape + enrich + score)
+python main.py serve -p 8080              # Web dashboard + API
 
-| Flag | Description |
-|------|-------------|
-| `-q TEXT` | Full-text search (FTS5) across name, description, country, city |
-| `-t TYPE` | Company type: `shipowner`, `ship_management`, `shipyard`, `chandler`, `agent`, `broker`, `equipment`, `spare_parts`, `offshore`, `tanker`, `bulker`, `container` … |
-| `-c COUNTRY` | Country name (partial match) |
-| `-v VESSEL` | Vessel type: `Tanker`, `Bulk Carrier`, `Container Ship`, `Offshore` … |
-| `--has-email` | Only include companies with at least one email |
+python main.py enrich --mx-check          # Re-crawl websites, validate email MX
+python main.py intelligence               # Re-classify contacts, infer emails
+python main.py rescore                    # Recompute all lead scores
+python main.py postprocess                # dedup + enrich + intelligence
+python main.py dedup                      # Merge duplicates only
+
+python main.py stats                      # Database statistics
+python main.py search -t shipowner -c Greece --has-email
+python main.py export leads.xlsx          # Excel (4 sheets)
+python main.py export crm.csv -f contacts # Flat contacts CSV
+python main.py list-scrapers
+```
+
+### Search / export filters
+
+| Flag | Meaning |
+|------|---------|
+| `-q` | Full-text search (FTS5) |
+| `-t` | Company type |
+| `-c` | Country |
+| `-v` | Vessel type |
+| `--has-email` | Only companies with an email |
+| `--min-score` *(API/dashboard)* | Minimum lead score |
+| `--has-dm` *(API/dashboard)* | Has a decision-maker contact |
 
 ---
 
-## Excel Export Structure
+## Exports
 
-The generated `.xlsx` file contains four sheets:
+| Format | File | Use |
+|--------|------|-----|
+| **Excel** | `.xlsx` | 4 sheets: Summary, All Companies, Contacts & Emails, By Country |
+| **Contacts CSV** | `.csv` | One row per contact/email |
+| **CRM CSV** | `.csv` | HubSpot/Salesforce/Pipedrive/Mailchimp-ready columns (First/Last/Email/Title/Seniority/Decision-Maker/Lead Score …), UTF-8 BOM for Excel |
 
-1. **Summary** – totals, breakdown by type and top countries
-2. **All Companies** – one row per company
-3. **Contacts & Emails** – one row per email/contact (sales-ready mail-merge format)
-4. **By Country** – pivot count by country
+---
+
+## Deployment
+
+The scraper is **always-on** and keeps a local SQLite database, so it needs a
+host that allows background processes and persistent storage. **Vercel/Netlify
+will not work** (serverless, no persistence, function timeouts).
+
+### Docker / VPS / Fly.io (recommended)
+```bash
+docker compose up -d          # dashboard on :5000 + worker, shared volume
+```
+`docker-compose.yml` runs the dashboard and the continuous scraper as two
+containers sharing one named volume. SQLite is configured in **WAL mode** with
+a 30 s busy-timeout so both processes can read/write safely.
+
+### Render.com (one-click blueprint)
+`render.yaml` deploys a single combined service (`serve_all.py` runs the
+dashboard + scheduler thread together) on a 2 GB persistent disk. Push the repo,
+"New → Blueprint", point at this folder.
+
+### Railway
+Uses the `Procfile` — add a `web` and a `worker` process, attach a volume at `/app/data`.
+
+### Scaling to Postgres
+For multiple workers or hosts, swap SQLite for Postgres: set `DB_URL` in
+`config.py` to your `postgresql://…` connection string (SQLAlchemy handles the
+rest; FTS search falls back to `ILIKE`).
 
 ---
 
@@ -111,50 +192,44 @@ The generated `.xlsx` file contains four sheets:
 
 ```
 marine-data-scraper/
-├── main.py                   # CLI entry point
-├── scheduler.py              # Continuous scheduler
-├── config.py                 # All settings & keyword lists
-├── requirements.txt
-├── .env.example
+├── main.py                # CLI entry point (run, serve, enrich, score, export…)
+├── serve_all.py           # Combined web + scheduler launcher (single-service hosts)
+├── scheduler.py           # Continuous scheduler + post-process pipeline
+├── config.py              # Settings, intervals, keyword taxonomies
+├── Dockerfile / docker-compose.yml / render.yaml / Procfile
 ├── database/
-│   ├── models.py             # SQLAlchemy ORM (Company, Contact, Email, Vessel …)
-│   └── db.py                 # Session helpers, upsert, search, stats
+│   ├── models.py          # Company, Contact, Email, Vessel, Outreach, SavedSegment…
+│   └── db.py              # WAL engine, upsert, search, stats
 ├── scrapers/
-│   ├── base_scraper.py       # HTTP, rate-limiting, retry, persist
-│   ├── maritime_connector.py # Maritime Connector directory
-│   ├── hellenic_shipping.py  # Hellenic Shipping News
-│   ├── shipserv.py           # ShipServ marketplace
-│   ├── maritime_events.py    # Trade show exhibitor lists
-│   ├── port_directory.py     # Association member directories
-│   └── generic_directory.py # Configurable generic scraper
+│   ├── base_scraper.py    # HTTP, rate-limit, retry, robots, persist
+│   ├── web_discovery.py   # Open-web search-engine discovery (find ALL companies)
+│   ├── maritime_connector.py / shipserv.py / hellenic_shipping.py
+│   ├── maritime_events.py / port_directory.py / generic_directory.py
 ├── processors/
-│   ├── categorizer.py        # Keyword-based company/vessel classification
-│   ├── email_extractor.py    # Advanced email extraction + validation
-│   └── deduplicator.py       # Fuzzy-match deduplication
+│   ├── enricher.py        # Website crawl → emails, phones, socials, people
+│   ├── contact_classifier.py  # Seniority / department / decision-maker
+│   ├── email_pattern.py   # Infer corporate email pattern + generate addresses
+│   ├── email_extractor.py # Robust extraction + deobfuscation + MX validation
+│   ├── lead_scorer.py     # 0–100 sales-priority scoring
+│   ├── categorizer.py     # Company & vessel-type classification
+│   └── deduplicator.py    # Fuzzy-match dedup & merge
 ├── exporters/
-│   ├── csv_exporter.py       # CSV export (companies + contacts)
-│   └── excel_exporter.py     # Multi-sheet formatted Excel export
-├── cli/
-│   └── search.py             # Search/export CLI commands
-└── data/
-    └── marine_companies.db   # SQLite database (auto-created)
+│   ├── excel_exporter.py  # Multi-sheet formatted workbook
+│   ├── csv_exporter.py    # Company / contact CSV
+│   └── crm_exporter.py    # CRM/email-platform-ready CSV
+├── webapp/
+│   ├── app.py             # Flask dashboard + REST API
+│   └── templates/dashboard.html
+├── cli/search.py          # Search/export CLI
+└── data/                  # SQLite DB + exports (gitignored)
 ```
-
----
-
-## Adding a New Scraper
-
-1. Create `scrapers/my_scraper.py`, subclass `BaseScraper`, implement `scrape()` yielding `ScrapedCompany` objects.
-2. Register it in `scheduler.py` → `SCRAPER_REGISTRY`.
-3. Add an interval in `config.py` → `SCRAPER_INTERVALS`.
-4. Run: `python main.py run my_scraper`.
 
 ---
 
 ## Ethics & Compliance
 
-- Only scrapes **publicly accessible** pages.
-- Respects `robots.txt` (basic check).
-- Rate-limited to `REQUEST_DELAY` seconds between requests (default 2 s).
-- Does **not** bypass authentication, scrape private data, or ignore explicit `Disallow` rules.
-- Data is for **B2B sales outreach** (ship spare parts) — review GDPR/CAN-SPAM requirements for your jurisdiction before emailing contacts.
+- Scrapes only **publicly accessible** pages; respects `robots.txt`; rate-limited (default 2 s/request).
+- Does not bypass logins, paywalls, or `Disallow` rules.
+- Data is for **B2B sales outreach** for ship spare parts. Before emailing
+  contacts, review **GDPR** (EU), **PECR**, and **CAN-SPAM** (US) rules for
+  your jurisdiction — include opt-outs and a legitimate-interest basis.

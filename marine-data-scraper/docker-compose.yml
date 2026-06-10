@@ -1,0 +1,29 @@
+# Runs the dashboard and the continuous scraper as two containers that
+# share one named volume holding the SQLite database. Ideal for a VPS
+# (DigitalOcean / Hetzner / Linode) or Fly.io.
+#
+#   docker compose up -d           # start both
+#   docker compose logs -f worker  # watch scraping
+version: "3.9"
+
+services:
+  dashboard:
+    build: .
+    command: gunicorn -w 2 -b 0.0.0.0:5000 webapp.app:app
+    ports:
+      - "5000:5000"
+    volumes:
+      - marine-data:/app/data
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: python main.py schedule
+    volumes:
+      - marine-data:/app/data
+    restart: unless-stopped
+    environment:
+      - REQUEST_DELAY=2.0
+
+volumes:
+  marine-data:

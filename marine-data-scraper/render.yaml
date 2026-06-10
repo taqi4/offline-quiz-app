@@ -1,0 +1,23 @@
+# Render.com blueprint — single combined service.
+#
+# Render disks attach to ONE service only, so the dashboard and the scraper
+# scheduler run together in one process (scheduler on a background thread via
+# serve_all.py), sharing one SQLite file on one persistent disk.
+#
+# Run with a single gunicorn worker so only one scheduler thread exists.
+services:
+  - type: web
+    name: marine-leads
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT serve_all:app
+    plan: starter
+    disk:
+      name: marine-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 2
+    envVars:
+      - key: REQUEST_DELAY
+        value: "2.0"
+      - key: RUN_NOW
+        value: "0"

@@ -25,6 +25,7 @@ SCRAPER_REGISTRY = {
     "maritime_events":    "scrapers.maritime_events.MaritimeEventsScraper",
     "port_directory":     "scrapers.port_directory.PortDirectoryScraper",
     "generic_directory":  "scrapers.generic_directory.GenericDirectoryScraper",
+    "web_discovery":      "scrapers.web_discovery.WebDiscoveryScraper",
 }
 
 _running = True
@@ -55,11 +56,47 @@ def run_dedup():
         run_deduplication(session)
 
 
+def run_enrichment(limit: int = 200, do_mx_check: bool = False):
+    """Visit company websites to harvest emails, phones, socials, people."""
+    logger.info("Running website enrichment (limit=%d)…", limit)
+    from processors.enricher import enrich_pending
+    with get_session() as session:
+        n = enrich_pending(session, limit=limit, do_mx_check=do_mx_check)
+    logger.info("Enriched %d companies", n)
+
+
+def run_intelligence():
+    """Classify contacts, infer email patterns, generate emails, rescore leads."""
+    logger.info("Running marketing-intelligence pass…")
+    from processors.contact_classifier import enrich_contact
+    from processors.email_pattern import infer_company_pattern, generate_contact_emails
+    from processors.lead_scorer import score_company
+    from database.models import Company
+
+    with get_session() as session:
+        companies = session.query(Company).all()
+        for c in companies:
+            for contact in c.contacts:
+                enrich_contact(contact)
+            infer_company_pattern(session, c)
+            generate_contact_emails(session, c)
+            c.lead_score = score_company(c)
+        session.commit()
+    logger.info("Intelligence pass complete for %d companies", len(companies))
+
+
+def run_postprocess():
+    """Full post-scrape pipeline: dedup -> enrich -> intelligence."""
+    run_dedup()
+    run_enrichment()
+    run_intelligence()
+
+
 def run_all_scrapers():
     """Run every scraper once – useful for initial seed."""
     for name in SCRAPER_REGISTRY:
         run_scraper(name)
-    run_dedup()
+    run_postprocess()
 
 
 def start_continuous(run_now: bool = True):
@@ -83,8 +120,10 @@ def start_continuous(run_now: bool = True):
             schedule.every(interval_hours).hours.do(run_scraper, name)
             logger.info("Scheduled %s every %d hours", name, interval_hours)
 
-    # Dedup daily
+    # Post-processing pipeline
     schedule.every(24).hours.do(run_dedup)
+    schedule.every(6).hours.do(run_enrichment)
+    schedule.every(12).hours.do(run_intelligence)
 
     logger.info("Scheduler started. Press Ctrl+C to stop.")
     while _running:

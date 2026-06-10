@@ -38,6 +38,25 @@ class Company(Base):
     website        = Column(String(500))
     description    = Column(Text)
 
+    # Direct outreach channels
+    phone          = Column(String(100))
+    fax            = Column(String(100))
+    linkedin       = Column(String(500))
+    twitter        = Column(String(500))
+    facebook       = Column(String(500))
+
+    # Firmographics
+    employees      = Column(Integer)                        # headcount if known
+    year_founded   = Column(Integer)
+    revenue_range  = Column(String(100))                    # e.g. "$10M-$50M"
+
+    # Marketing intelligence
+    lead_score     = Column(Float, default=0.0, index=True) # 0-100 sales priority
+    email_pattern  = Column(String(100))                    # e.g. "{first}.{last}"
+    region         = Column(String(100), index=True)        # Europe, Asia, Middle East …
+    country_code   = Column(String(5))                      # ISO-2
+    last_enriched  = Column(DateTime)                       # website enrichment timestamp
+
     # Location
     country        = Column(String(100), index=True)
     city           = Column(String(200))
@@ -81,11 +100,16 @@ class Contact(Base):
     id          = Column(Integer, primary_key=True)
     company_id  = Column(Integer, ForeignKey("companies.id"), nullable=False, index=True)
     name        = Column(String(300))
+    first_name  = Column(String(150))
+    last_name   = Column(String(150))
     title       = Column(String(200))          # "Fleet Manager", "Purchasing Director" …
-    department  = Column(String(200))
+    department  = Column(String(200))          # purchasing, technical, management …
+    seniority   = Column(String(50))           # c_level, vp, director, manager, staff
+    is_decision_maker = Column(Boolean, default=False, index=True)
     phone       = Column(String(100))
     mobile      = Column(String(100))
     email       = Column(String(300), index=True)
+    email_status= Column(String(50))           # verified, pattern_guess, unverified
     linkedin    = Column(String(500))
     notes       = Column(Text)
     source_url  = Column(String(1000))
@@ -108,6 +132,10 @@ class Email(Base):
     confidence  = Column(Float, default=1.0)    # 0-1 extraction confidence
     source_url  = Column(String(1000))
     is_valid    = Column(Boolean, default=True)
+    mx_valid    = Column(Boolean)               # domain has MX records
+    is_role     = Column(Boolean, default=False)# role address (info@, sales@)
+    is_free     = Column(Boolean, default=False)# gmail/yahoo etc.
+    domain      = Column(String(255), index=True)
     date_scraped= Column(DateTime, default=datetime.utcnow)
 
     company     = relationship("Company", back_populates="emails")
@@ -180,3 +208,34 @@ class ScrapeLog(Base):
     emails_found   = Column(Integer, default=0)
     status         = Column(String(50))     # "success", "error", "partial"
     error_message  = Column(Text)
+
+
+class Outreach(Base):
+    """Tracks sales outreach activity per company/contact for campaign management."""
+    __tablename__ = "outreach"
+
+    id           = Column(Integer, primary_key=True)
+    company_id   = Column(Integer, ForeignKey("companies.id"), index=True)
+    contact_id   = Column(Integer, ForeignKey("contacts.id"), index=True)
+    campaign     = Column(String(200), index=True)
+    channel      = Column(String(50))       # email, linkedin, phone
+    status       = Column(String(50), index=True)  # queued, sent, opened, replied, bounced, converted
+    subject      = Column(String(500))
+    sent_at      = Column(DateTime)
+    opened_at    = Column(DateTime)
+    replied_at   = Column(DateTime)
+    notes        = Column(Text)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+
+
+class SavedSegment(Base):
+    """Reusable saved marketing segments (filters) for repeatable list-building."""
+    __tablename__ = "saved_segments"
+
+    id           = Column(Integer, primary_key=True)
+    name         = Column(String(200), unique=True, nullable=False)
+    description  = Column(Text)
+    filters_json = Column(Text)             # serialized search filters
+    created_at   = Column(DateTime, default=datetime.utcnow)
+    last_run     = Column(DateTime)
+    match_count  = Column(Integer, default=0)
