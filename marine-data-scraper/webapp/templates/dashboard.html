@@ -73,12 +73,25 @@
   .x{float:right;cursor:pointer;font-size:22px;color:#9aa9b8}
   a{color:var(--b)}
   .loading{padding:40px;text-align:center;color:#9aa9b8}
+  /* Add company modal */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .form-grid .full{grid-column:1/-1}
+  .form-grid label{font-size:12px;font-weight:600;color:#33475b;display:block;margin-bottom:3px}
+  .form-grid input,.form-grid select,.form-grid textarea{width:100%;padding:8px 10px;border:1px solid #d6e0ea;border-radius:8px;font-size:13px}
+  .form-grid textarea{resize:vertical;min-height:60px}
+  .form-actions{display:flex;gap:10px;margin-top:16px}
+  .form-actions button{flex:1;padding:10px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn-save{background:var(--navy);color:#fff} .btn-save:hover{background:var(--navy2)}
+  .btn-cancel{background:#eef3f8;color:#33475b}
+  .toast{position:fixed;bottom:24px;right:24px;background:#2ecc71;color:#fff;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;opacity:0;transition:opacity .3s;z-index:99}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
 <header>
   <h1>⚓ Marine Leads Dashboard</h1>
   <span class="tag">Ship Spares Sales Intelligence</span>
+  <button onclick="openAddForm()" style="margin-left:auto;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px">+ Add Company</button>
 </header>
 
 <div class="stats">
@@ -160,6 +173,48 @@
 <div class="modal" id="modal" onclick="if(event.target.id=='modal')close_()">
   <div class="card" id="card"></div>
 </div>
+
+<!-- Add Company modal -->
+<div class="modal" id="addModal" onclick="if(event.target.id=='addModal')closeAdd()">
+  <div class="card" style="max-width:720px">
+    <span class="x" onclick="closeAdd()">×</span>
+    <h2 style="color:var(--navy)">Add Company Manually</h2>
+    <p class="muted" style="margin-top:4px;font-size:13px">Add a lead you found yourself — score is calculated automatically.</p>
+    <div class="form-grid">
+      <div class="full"><label>Company Name *</label><input id="f_name" placeholder="e.g. Acme Shipping Ltd"></div>
+      <div>
+        <label>Company Type</label>
+        <select id="f_type">
+          <option value="">— select —</option>
+          {% for t in company_types %}<option>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Country</label><input id="f_country" placeholder="e.g. Greece"></div>
+      <div><label>City</label><input id="f_city" placeholder="e.g. Piraeus"></div>
+      <div><label>Website</label><input id="f_website" placeholder="https://..."></div>
+      <div><label>Phone</label><input id="f_phone" placeholder="+30 210 ..."></div>
+      <div><label>Fleet Size</label><input id="f_fleet" type="number" min="0" placeholder="0"></div>
+      <div>
+        <label>Vessel Types</label>
+        <select id="f_vessels" multiple style="height:90px">
+          {% for v in vessel_types %}<option>{{ v }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="full"><label>LinkedIn URL</label><input id="f_linkedin" placeholder="https://linkedin.com/company/..."></div>
+      <div class="full"><label>Emails (comma-separated)</label><input id="f_emails" placeholder="purchasing@company.com, info@company.com"></div>
+      <div><label>Contact Name</label><input id="f_cname" placeholder="John Smith"></div>
+      <div><label>Contact Title</label><input id="f_ctitle" placeholder="Purchasing Manager"></div>
+      <div class="full"><label>Contact Email</label><input id="f_cemail" placeholder="john.smith@company.com"></div>
+      <div class="full"><label>Description / Notes</label><textarea id="f_desc" placeholder="Brief description or notes about this company…"></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-save" onclick="saveCompany()">Save Lead</button>
+      <button class="btn-cancel" onclick="closeAdd()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -244,6 +299,62 @@ async function detail(id){
 function exp(fmt){ const p=params(); p.set("format",fmt); window.location="/api/export?"+p.toString(); }
 function close_(){ $("modal").classList.remove("on"); }
 function esc(s){ return (s||'').toString().replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+// ── Add Company form ──────────────────────────────────────────────────────
+
+function openAddForm(){ $("addModal").classList.add("on"); }
+function closeAdd(){    $("addModal").classList.remove("on"); }
+
+async function saveCompany(){
+  const name = $("f_name").value.trim();
+  if(!name){ alert("Company name is required."); return; }
+
+  const vessels = Array.from($("f_vessels").selectedOptions).map(o=>o.value);
+  const emails  = ($("f_emails").value||"").split(",").map(s=>s.trim()).filter(Boolean);
+
+  const payload = {
+    name:         name,
+    company_type: $("f_type").value,
+    country:      $("f_country").value.trim(),
+    city:         $("f_city").value.trim(),
+    website:      $("f_website").value.trim(),
+    phone:        $("f_phone").value.trim(),
+    fleet_size:   $("f_fleet").value || null,
+    linkedin:     $("f_linkedin").value.trim(),
+    vessel_types: vessels,
+    emails:       emails,
+    contact_name: $("f_cname").value.trim(),
+    contact_title:$("f_ctitle").value.trim(),
+    contact_email:$("f_cemail").value.trim(),
+    description:  $("f_desc").value.trim(),
+  };
+
+  const r = await fetch("/api/companies", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(payload),
+  });
+  const d = await r.json();
+  if(d.error){ alert("Error: "+d.error); return; }
+
+  closeAdd();
+  toast(d.created
+    ? `✅ "${name}" added — Lead Score: ${d.score}`
+    : `✅ "${name}" updated — Lead Score: ${d.score}`);
+
+  // Clear form
+  ["f_name","f_type","f_country","f_city","f_website","f_phone","f_fleet",
+   "f_linkedin","f_emails","f_cname","f_ctitle","f_cemail","f_desc"]
+   .forEach(id=>{ const el=$(id); if(el) el.value=""; });
+  Array.from($("f_vessels").options).forEach(o=>o.selected=false);
+
+  setTimeout(load, 800);  // refresh results
+}
+
+function toast(msg, ms=3500){
+  const el=$("toast"); el.textContent=msg; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"), ms);
+}
 
 // ── Scraper control ───────────────────────────────────────────────────────
 

@@ -34,17 +34,22 @@ DEFAULT_HEADERS = {
 
 # Scheduler: how often to re-run each scraper (hours)
 SCRAPER_INTERVALS = {
-    "maritime_connector":    24,
-    "hellenic_shipping":     12,
-    "ship_management_dir":   48,
-    "dnv_veritas":           72,
-    "lloyds_register":       72,
-    "port_authority":        48,
-    "marine_insight":        12,
-    "shipserv":              24,
-    "tradewindsnews":        12,
-    "maritime_events":       168,   # weekly
-    "web_discovery":         72,    # broad open-web sweep every 3 days
+    # Core directories
+    "maritime_connector":      24,
+    "hellenic_shipping":       12,
+    "shipserv":                24,
+    "maritime_events":         168,    # weekly — exhibitor lists don't change daily
+    "port_directory":          48,
+    "generic_directory":       24,
+    # Open-web
+    "web_discovery":           72,     # broad sweep every 3 days
+    # High-value direct targets — run less often, data is stable
+    "ship_management_groups":  168,    # weekly
+    "shipyard_directory":      168,    # weekly
+    "industry_associations":   168,    # weekly
+    "classification_societies":168,    # weekly
+    # Enrichment — run daily, works through backlog incrementally
+    "linkedin_public":         48,
 }
 
 # Company type keywords for categorisation

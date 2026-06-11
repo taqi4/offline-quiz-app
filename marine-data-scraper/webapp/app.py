@@ -215,6 +215,81 @@ def api_segments():
 
 
 # ---------------------------------------------------------------------------
+# Manual company add / edit
+# ---------------------------------------------------------------------------
+
+@app.route("/api/companies", methods=["POST"])
+def api_add_company():
+    """Manually add or update a company from the UI form."""
+    data = request.get_json(force=True) or {}
+    name = (data.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+
+    with get_session() as session:
+        from database.db import upsert_company, upsert_email
+        from processors.lead_scorer import score_company
+        from processors.contact_classifier import enrich_contact
+        from database.models import Contact, VesselType
+
+        company_data = {
+            "name":         name,
+            "company_type": data.get("company_type", ""),
+            "website":      data.get("website", ""),
+            "phone":        data.get("phone", ""),
+            "country":      data.get("country", ""),
+            "city":         data.get("city", ""),
+            "address":      data.get("address", ""),
+            "description":  data.get("description", ""),
+            "fleet_size":   int(data["fleet_size"]) if data.get("fleet_size") else None,
+            "linkedin":     data.get("linkedin", ""),
+            "source_name":  "Manual Entry",
+            "source_url":   data.get("website", ""),
+        }
+        company, created = upsert_company(session, company_data)
+        session.flush()
+
+        # Vessel types
+        for vt_name in (data.get("vessel_types") or []):
+            vt = session.query(VesselType).filter_by(name=vt_name).first()
+            if vt and vt not in company.vessel_types:
+                company.vessel_types.append(vt)
+
+        # Emails
+        for addr in (data.get("emails") or []):
+            addr = addr.strip()
+            if addr:
+                upsert_email(session, company.id, addr,
+                             email_type="general", source_url="manual")
+
+        # Contact
+        contact_name  = (data.get("contact_name") or "").strip()
+        contact_email = (data.get("contact_email") or "").strip()
+        contact_title = (data.get("contact_title") or "").strip()
+        if contact_name or contact_email:
+            ct = Contact(company_id=company.id, name=contact_name,
+                         title=contact_title, email=contact_email or None,
+                         source_url="manual")
+            enrich_contact(ct)
+            session.add(ct)
+            if contact_email:
+                upsert_email(session, company.id, contact_email,
+                             email_type="contact", source_url="manual")
+
+        # Flush so all new Email/Contact rows are persisted before scoring
+        session.flush()
+        session.expire(company)          # force relationship reload
+        company.lead_score = score_company(company)
+        cid = company.id
+        return jsonify({
+            "ok":      True,
+            "created": created,
+            "id":      cid,
+            "score":   company.lead_score,
+        }), 201 if created else 200
+
+
+# ---------------------------------------------------------------------------
 # Scheduler control API
 # ---------------------------------------------------------------------------
 

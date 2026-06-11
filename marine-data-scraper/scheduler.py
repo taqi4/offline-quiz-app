@@ -20,13 +20,22 @@ logger = logging.getLogger(__name__)
 
 # Registry of all available scrapers
 SCRAPER_REGISTRY = {
-    "maritime_connector": "scrapers.maritime_connector.MaritimeConnectorScraper",
-    "hellenic_shipping":  "scrapers.hellenic_shipping.HellenicShippingNewsScraper",
-    "shipserv":           "scrapers.shipserv.ShipServScraper",
-    "maritime_events":    "scrapers.maritime_events.MaritimeEventsScraper",
-    "port_directory":     "scrapers.port_directory.PortDirectoryScraper",
-    "generic_directory":  "scrapers.generic_directory.GenericDirectoryScraper",
-    "web_discovery":      "scrapers.web_discovery.WebDiscoveryScraper",
+    # ── Core directories ──────────────────────────────────────────────
+    "maritime_connector":      "scrapers.maritime_connector.MaritimeConnectorScraper",
+    "hellenic_shipping":       "scrapers.hellenic_shipping.HellenicShippingNewsScraper",
+    "shipserv":                "scrapers.shipserv.ShipServScraper",
+    "maritime_events":         "scrapers.maritime_events.MaritimeEventsScraper",
+    "port_directory":          "scrapers.port_directory.PortDirectoryScraper",
+    "generic_directory":       "scrapers.generic_directory.GenericDirectoryScraper",
+    # ── Open-web discovery ────────────────────────────────────────────
+    "web_discovery":           "scrapers.web_discovery.WebDiscoveryScraper",
+    # ── High-value direct targets ─────────────────────────────────────
+    "ship_management_groups":  "scrapers.ship_management_groups.ShipManagementGroupsScraper",
+    "shipyard_directory":      "scrapers.shipyard_directory.ShipyardDirectoryScraper",
+    "industry_associations":   "scrapers.industry_associations.IndustryAssociationsScraper",
+    "classification_societies":"scrapers.classification_societies.ClassificationSocietiesScraper",
+    # ── Enrichment ────────────────────────────────────────────────────
+    "linkedin_public":         "scrapers.linkedin_public.LinkedInPublicScraper",
 }
 
 # ---------------------------------------------------------------------------
