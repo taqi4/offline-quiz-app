@@ -6,7 +6,8 @@ import logging
 import sys
 import time
 import signal
-from datetime import datetime, timedelta
+import threading
+from datetime import datetime
 from pathlib import Path
 
 import schedule
@@ -28,7 +29,53 @@ SCRAPER_REGISTRY = {
     "web_discovery":      "scrapers.web_discovery.WebDiscoveryScraper",
 }
 
-_running = True
+# ---------------------------------------------------------------------------
+# Scheduler state — readable and writable from the web UI
+# ---------------------------------------------------------------------------
+
+_state_lock   = threading.Lock()
+_running      = True       # False → scheduler loop exits completely
+_paused       = False      # True → loop ticks but skips all jobs
+_current_job  = ""         # name of the scraper currently running (or "")
+_last_run     = {}         # {scraper_name: datetime}
+_stats        = {          # live counters reset each run-all
+    "companies_found": 0,
+    "contacts_found":  0,
+    "emails_found":    0,
+}
+
+
+def get_scheduler_status() -> dict:
+    with _state_lock:
+        return {
+            "running":       _running,
+            "paused":        _paused,
+            "current_job":   _current_job,
+            "last_run":      {k: v.isoformat() for k, v in _last_run.items()},
+            "scrapers":      list(SCRAPER_REGISTRY.keys()),
+            "stats":         dict(_stats),
+        }
+
+
+def pause_scheduler():
+    global _paused
+    with _state_lock:
+        _paused = True
+    logger.info("Scheduler paused via UI")
+
+
+def resume_scheduler():
+    global _paused
+    with _state_lock:
+        _paused = False
+    logger.info("Scheduler resumed via UI")
+
+
+def stop_scheduler():
+    global _running
+    with _state_lock:
+        _running = False
+    logger.info("Scheduler stopped via UI")
 
 
 def _load_scraper(dotted_path: str):
@@ -39,15 +86,29 @@ def _load_scraper(dotted_path: str):
 
 
 def run_scraper(name: str):
+    global _current_job
+    if _paused:
+        logger.info("Scheduler paused — skipping %s", name)
+        return
+    with _state_lock:
+        _current_job = name
+        _last_run[name] = datetime.utcnow()
     logger.info("=== Starting scraper: %s ===", name)
     scraper_class = _load_scraper(SCRAPER_REGISTRY[name])
     scraper = scraper_class()
     try:
         companies, contacts, emails = scraper.run()
+        with _state_lock:
+            _stats["companies_found"] += companies
+            _stats["contacts_found"]  += contacts
+            _stats["emails_found"]    += emails
         logger.info("=== %s complete: %d companies, %d contacts, %d emails ===",
                     name, companies, contacts, emails)
     except Exception as e:
         logger.error("Scraper %s raised an exception: %s", name, e, exc_info=True)
+    finally:
+        with _state_lock:
+            _current_job = ""
 
 
 def run_dedup():
@@ -127,7 +188,8 @@ def start_continuous(run_now: bool = True):
 
     logger.info("Scheduler started. Press Ctrl+C to stop.")
     while _running:
-        schedule.run_pending()
+        if not _paused:
+            schedule.run_pending()
         time.sleep(30)
 
     logger.info("Scheduler stopped.")

@@ -214,6 +214,46 @@ def api_segments():
         ])
 
 
+# ---------------------------------------------------------------------------
+# Scheduler control API
+# ---------------------------------------------------------------------------
+
+@app.route("/api/scheduler/status")
+def api_scheduler_status():
+    try:
+        from scheduler import get_scheduler_status
+        return jsonify(get_scheduler_status())
+    except Exception:
+        return jsonify({"running": False, "paused": False,
+                        "current_job": "", "error": "scheduler not running"})
+
+
+@app.route("/api/scheduler/pause", methods=["POST"])
+def api_scheduler_pause():
+    from scheduler import pause_scheduler
+    pause_scheduler()
+    return jsonify({"ok": True, "paused": True})
+
+
+@app.route("/api/scheduler/resume", methods=["POST"])
+def api_scheduler_resume():
+    from scheduler import resume_scheduler
+    resume_scheduler()
+    return jsonify({"ok": True, "paused": False})
+
+
+@app.route("/api/scheduler/run", methods=["POST"])
+def api_scheduler_run():
+    """Trigger a single named scraper immediately (runs in background thread)."""
+    import threading
+    name = (request.get_json(force=True) or {}).get("scraper", "")
+    from scheduler import SCRAPER_REGISTRY, run_scraper
+    if name not in SCRAPER_REGISTRY:
+        return jsonify({"error": f"unknown scraper '{name}'"}), 400
+    threading.Thread(target=run_scraper, args=(name,), daemon=True).start()
+    return jsonify({"ok": True, "started": name})
+
+
 def main(host="0.0.0.0", port=5000, debug=False):
     logging.basicConfig(level=logging.INFO)
     init_db()

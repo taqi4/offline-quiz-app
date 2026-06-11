@@ -29,9 +29,28 @@
   .btn{background:var(--navy);color:#fff;border:none;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer;width:100%;margin-top:14px;font-size:14px}
   .btn:hover{background:var(--navy2)}
   .btn.alt{background:var(--accent)}
+  .btn.stop{background:#e74c3c}  .btn.stop:hover{background:#c0392b}
+  .btn.go{background:#2ecc71}    .btn.go:hover{background:#27ae60}
+  .btn.run{background:#f39c12}   .btn.run:hover{background:#d68910}
   .exports{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
   .exports a{flex:1;text-align:center;font-size:11px;background:#eef3f8;color:var(--navy);padding:8px 4px;border-radius:7px;text-decoration:none;font-weight:600}
   .exports a:hover{background:#dce8f2}
+  /* Scraper control panel */
+  .scraper-panel{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin:0 28px 20px}
+  .scraper-panel h3{font-size:13px;text-transform:uppercase;color:#6b7c8c;letter-spacing:.5px;margin-bottom:14px}
+  .sc-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .sc-status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .dot.running{background:#2ecc71;box-shadow:0 0 6px #2ecc71}
+  .dot.paused{background:#f39c12}
+  .dot.stopped{background:#e74c3c}
+  .sc-job{font-size:12px;color:#6b7c8c;margin-left:4px}
+  .sc-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .sc-btns button{padding:8px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;color:#fff}
+  .sc-run-list{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .sc-run-list button{padding:5px 10px;background:#eef3f8;color:#003366;border:1px solid #d6e0ea;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600}
+  .sc-run-list button:hover{background:#003366;color:#fff}
+  .sc-stats{font-size:12px;color:#6b7c8c;margin-top:8px}
   .results{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
   .results .bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #eef2f6}
   .results .bar .cnt{font-weight:700;color:var(--navy)}
@@ -70,6 +89,24 @@
   <div class="stat hot"><div class="n">{{ "{:,}".format(stats.hot_leads) }}</div><div class="l">Hot Leads (A)</div></div>
   <div class="stat warm"><div class="n">{{ "{:,}".format(stats.warm_leads) }}</div><div class="l">Warm Leads (B)</div></div>
   <div class="stat"><div class="n">{{ stats.avg_lead_score }}</div><div class="l">Avg Score</div></div>
+</div>
+
+<!-- ── Scraper Control Panel ── -->
+<div class="scraper-panel">
+  <h3>⚙️ Scraper Control</h3>
+  <div class="sc-row">
+    <div class="sc-status">
+      <span class="dot" id="scDot"></span>
+      <span id="scStatus">Checking…</span>
+      <span class="sc-job" id="scJob"></span>
+    </div>
+    <div class="sc-btns">
+      <button class="btn stop" style="width:auto;margin:0" onclick="scraperPause()" id="btnPause">⏸ Pause</button>
+      <button class="btn go"   style="width:auto;margin:0" onclick="scraperResume()" id="btnResume">▶ Resume</button>
+    </div>
+  </div>
+  <div class="sc-run-list" id="scRunList"></div>
+  <div class="sc-stats" id="scStats"></div>
 </div>
 
 <div class="wrap">
@@ -207,6 +244,61 @@ async function detail(id){
 function exp(fmt){ const p=params(); p.set("format",fmt); window.location="/api/export?"+p.toString(); }
 function close_(){ $("modal").classList.remove("on"); }
 function esc(s){ return (s||'').toString().replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+// ── Scraper control ───────────────────────────────────────────────────────
+
+async function refreshScraperStatus(){
+  let s;
+  try{ const r=await fetch("/api/scheduler/status"); s=await r.json(); }
+  catch(e){ $("scStatus").textContent="Not running"; $("scDot").className="dot stopped"; return; }
+
+  const dot=$("scDot"), lbl=$("scStatus"), job=$("scJob");
+  if(!s.running){
+    dot.className="dot stopped"; lbl.textContent="Stopped";
+  } else if(s.paused){
+    dot.className="dot paused"; lbl.textContent="Paused";
+  } else {
+    dot.className="dot running"; lbl.textContent="Running";
+  }
+  job.textContent = s.current_job ? "▶ " + s.current_job.replace(/_/g," ") : "";
+
+  // Run-individual buttons
+  const list=$("scRunList");
+  if(list && !list.dataset.built){
+    list.dataset.built="1";
+    list.innerHTML="<span style='font-size:11px;color:#9aa9b8;align-self:center'>Run now:</span>" +
+      (s.scrapers||[]).map(n=>`<button onclick="scraperRun('${n}')">${n.replace(/_/g," ")}</button>`).join("");
+  }
+
+  // Session totals
+  const st=s.stats||{};
+  $("scStats").textContent = st.companies_found
+    ? `Session totals — Companies: ${st.companies_found.toLocaleString()}  Contacts: ${st.contacts_found.toLocaleString()}  Emails: ${st.emails_found.toLocaleString()}`
+    : "";
+
+  // Show/hide pause+resume based on state
+  if($("btnPause"))  $("btnPause").style.display  = (!s.paused && s.running) ? "" : "none";
+  if($("btnResume")) $("btnResume").style.display = (s.paused  && s.running) ? "" : "none";
+}
+
+async function scraperPause(){
+  await fetch("/api/scheduler/pause",{method:"POST"});
+  refreshScraperStatus();
+}
+async function scraperResume(){
+  await fetch("/api/scheduler/resume",{method:"POST"});
+  refreshScraperStatus();
+}
+async function scraperRun(name){
+  const r=await fetch("/api/scheduler/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({scraper:name})});
+  const d=await r.json();
+  if(d.ok) { $("scJob").textContent="▶ "+name.replace(/_/g," ")+" (started)"; setTimeout(refreshScraperStatus,3000); }
+}
+
+// Poll scraper status every 10 seconds
+refreshScraperStatus();
+setInterval(refreshScraperStatus, 10000);
+
 load();
 </script>
 </body>
