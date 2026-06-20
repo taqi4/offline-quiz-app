@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Scraper for major maritime trade events – extracts exhibitor lists (public pages).
 Sources: SMM Hamburg, Europort, Nor-Shipping, Seawork, SMW, METSTRADE

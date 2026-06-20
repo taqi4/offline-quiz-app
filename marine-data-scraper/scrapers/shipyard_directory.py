@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Scraper for global shipyard and ship repair yard directories.
 Shipyards are constant buyers of every type of ship spare part.

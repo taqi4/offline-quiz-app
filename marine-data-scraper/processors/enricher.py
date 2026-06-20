@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Website enrichment — visits a company's own website to harvest deeper data:
 contact/about/team pages, phones, social links, additional emails.

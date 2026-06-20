@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Targeted scrapers for the world's largest ship management company websites.
 These companies manage thousands of vessels and are prime buyers of ship spares.

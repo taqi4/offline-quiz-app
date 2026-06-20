@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Scraper for Maritime Connector – a public marine industry directory.
 URL: https://maritime-connector.com

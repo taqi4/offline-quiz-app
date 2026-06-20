@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Scraper for ShipServ – marine marketplace / supplier directory.
 URL: https://www.shipserv.com

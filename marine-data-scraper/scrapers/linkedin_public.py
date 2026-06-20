@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 LinkedIn public company page scraper.
 
